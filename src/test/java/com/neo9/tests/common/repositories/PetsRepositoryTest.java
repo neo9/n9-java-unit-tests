@@ -2,10 +2,12 @@ package com.neo9.tests.common.repositories;
 
 import com.neo9.tests.common.entities.Pet;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.ActiveProfiles;
 import reactor.test.StepVerifier;
@@ -44,5 +46,29 @@ public class PetsRepositoryTest {
 						})
 						.expectComplete()
 						.verify();
+	}
+
+	@Test
+	public void execute_asserts_after_stepVerifier_reactive() {
+		// assert
+		StepVerifier.create(
+						petsRepository.insert(Pet.builder().name("médor").build())
+						.then(reactiveMongoTemplate.find(Query.query(Criteria.where("name").is("médor")), Pet.class).single())
+		)
+						.expectNextMatches(pet -> {
+							assertEquals("médor", pet.getName(), "Name should be equals");
+							return true;
+						})
+						.expectComplete()
+						.verify();
+	}
+
+	@Test
+	public void execute_blocking_asserts() {
+		// assert
+		petsRepository.insert(Pet.builder().name("lutèce").build()).block();
+		final Pet pet = reactiveMongoTemplate.find(Query.query(Criteria.where("name").is("lutèce")), Pet.class).single().block();
+		assertNotNull(pet);
+		assertEquals("lutèce", pet.getName(), "Age should be equals");
 	}
 }
